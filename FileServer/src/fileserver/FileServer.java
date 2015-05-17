@@ -48,13 +48,13 @@ public class FileServer {
                 }
             }
         }.start();
-        
+
         new Thread() {
             @Override
             public void run() {
                 try {
                     while (true) {
-                        master.addReplica(listenerClient.accept());
+                        master.addClient(listenerClient.accept());
                     }
                 } catch (IOException ex) {
                     Logger.getLogger(FileServer.class.getName()).
@@ -80,7 +80,7 @@ class Master {
     private final HashSet<Replica> replicas = new HashSet<>();
 
     private int cntClient = 0;
-    private final HashSet<Replica> clients = new HashSet<>();
+    private final HashSet<Client> clients = new HashSet<>();
 
     public Master() {
 
@@ -94,9 +94,9 @@ class Master {
     }
 
     public void addClient(Socket socket) {
-        Replica new_replica = new Replica(socket, cntReplica + 100);
-        new_replica.start();
-        clients.add(new_replica);
+        Client new_client = new Client(socket, cntReplica + 100);
+        new_client.start();
+        clients.add(new_client);
         cntClient++;
     }
 
@@ -181,10 +181,10 @@ class Master {
                     response = input.readLine();
                     if (response == null) {
                         return;
-                    } else {
-                        System.out.println(
-                                "Client " + this.id + ": " + response
-                        );
+                    } else if (response.startsWith("sube")) {
+                        output.println("Archivo subido");
+                    } else if (response.startsWith("baja")) {
+                        output.println("Archivo descargado");
                     }
                 }
             } catch (IOException ex) {
