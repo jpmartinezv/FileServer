@@ -5,6 +5,7 @@
  */
 package fileserverclient;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Scanner;
@@ -21,6 +22,8 @@ public class FileServerClient {
     private static StreamSocket socket;
     private final String id;
 
+    private static String filesPath = System.getProperty("user.dir") + "/files/";
+
     public FileServerClient(String serverAddress) throws Exception {
         socket = new StreamSocket(
                 InetAddress.getByName(serverAddress), PORT);
@@ -29,28 +32,26 @@ public class FileServerClient {
     }
 
     public void run() throws Exception {
-        new Thread() {
-            @Override
-            public void run() {
-                String response;
-                try {
-                    while (true) {
-                        response = socket.receiveMessage();
-                        System.out.println(response);
-                        Thread.sleep(5000);
-                    }
-                } catch (InterruptedException | IOException ex) {
-                    Logger.getLogger(FileServerClient.class.getName()).log(Level.SEVERE, null, ex);
-                } finally {
-                    try {
-                        socket.close();
-                    } catch (IOException ex) {
-                        Logger.getLogger(FileServerClient.class.getName()).log(Level.SEVERE, null, ex);
-                    }
+        Scanner e = new Scanner(System.in);
+        String command;
+        while (true) {
+            command = e.nextLine();
+            if (command.startsWith("sube")) {
+                File file = new File(filesPath + command.substring(5));
+                socket.sendMessage("sube " + command.substring(5));
+                socket.sendFile(file);
+                System.out.println(socket.receiveMessage());
+            } else if (command.startsWith("baja")) {
+                socket.sendMessage("baja " + command.substring(5));
+                File file = new File(filesPath + command.substring(5));
+                if (socket.receiveMessage().equals("success")) {
+                    socket.receiveFile(file);
                 }
-
+                System.out.println(socket.receiveMessage());
+            } else {
+                System.out.println("Comando incorrecto");
             }
-        }.start();
+        }
     }
 
     /**
@@ -59,19 +60,7 @@ public class FileServerClient {
      */
     public static void main(String[] args) throws Exception {
         String serverAddress = (args.length == 0) ? "localhost" : args[1];
-        FileServerClient replica = new FileServerClient(serverAddress);
-        replica.run();
-        Scanner e = new Scanner(System.in);
-        String command;
-        while (true) {
-            command = e.nextLine();
-            if (command.startsWith("sube")) {
-                socket.sendMessage("sube " + command.substring(4));
-            } else if (command.startsWith("baja")) {
-                socket.sendMessage("baja " + command.substring(4));
-            } else {
-                System.out.println("Comando incorrecto");
-            }
-        }
+        FileServerClient client = new FileServerClient(serverAddress);
+        client.run();
     }
 }

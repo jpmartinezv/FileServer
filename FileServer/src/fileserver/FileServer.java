@@ -1,5 +1,6 @@
 package fileserver;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -78,6 +79,8 @@ class Master {
 
     private int cntClient = 0;
     private final HashSet<Client> clients = new HashSet<>();
+
+    String filesPath = System.getProperty("user.dir") + "/upload/";
 
     public Master() {
 
@@ -161,10 +164,23 @@ class Master {
                     if (response == null) {
                         return;
                     } else if (response.startsWith("sube")) {
-                        System.out.println("Nuevo archivo: " + response.substring(4));
+                        System.out.println("Nuevo archivo: " + response.substring(5));
+
+                        File outFile = new File(filesPath + response.substring(5));
+
+                        socket.receiveFile(outFile);
                         socket.sendMessage("Archivo subido");
                     } else if (response.startsWith("baja")) {
-                        socket.sendMessage("Archivo descargado");
+                        File file = new File(filesPath + response.substring(5));
+                        if (file.exists() && !file.isDirectory()) {
+                            socket.sendMessage("success");
+                            socket.sendFile(file);
+                            socket.sendMessage("Archivo descargado");
+                        } else {
+                            socket.sendMessage("error");
+                            socket.sendMessage("Archivo no encontrado");
+                        }
+
                     }
                 }
             } catch (IOException ex) {
