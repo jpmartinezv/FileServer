@@ -5,11 +5,8 @@
  */
 package fileserverclient;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
+import java.net.InetAddress;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -21,17 +18,13 @@ import java.util.logging.Logger;
 public class FileServerClient {
 
     private static final int PORT = 9080;
-    private final Socket socket;
-    private static BufferedReader input;
-    private static PrintWriter output;
+    private static StreamSocket socket;
     private final String id;
 
     public FileServerClient(String serverAddress) throws Exception {
-        this.socket = new Socket(serverAddress, PORT);
-        input = new BufferedReader(new InputStreamReader(
-                socket.getInputStream()));
-        output = new PrintWriter(socket.getOutputStream(), true);
-        this.id = input.readLine();
+        socket = new StreamSocket(
+                InetAddress.getByName(serverAddress), PORT);
+        this.id = socket.receiveMessage();
         System.out.println("Nuevo cliente: " + this.id);
     }
 
@@ -42,7 +35,7 @@ public class FileServerClient {
                 String response;
                 try {
                     while (true) {
-                        response = input.readLine();
+                        response = socket.receiveMessage();
                         System.out.println(response);
                         Thread.sleep(5000);
                     }
@@ -73,9 +66,9 @@ public class FileServerClient {
         while (true) {
             command = e.nextLine();
             if (command.startsWith("sube")) {
-                output.println("sube " + command.substring(4));
+                socket.sendMessage("sube " + command.substring(4));
             } else if (command.startsWith("baja")) {
-                output.println("baja " + command.substring(4));
+                socket.sendMessage("baja " + command.substring(4));
             } else {
                 System.out.println("Comando incorrecto");
             }

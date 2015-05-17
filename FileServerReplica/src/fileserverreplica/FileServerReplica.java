@@ -1,11 +1,7 @@
 package fileserverreplica;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.Socket;
-import java.util.Scanner;
+import java.net.InetAddress;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -16,17 +12,13 @@ import java.util.logging.Logger;
 public class FileServerReplica {
 
     private static final int PORT = 9090;
-    private final Socket socket;
-    private static BufferedReader input;
-    private static PrintWriter output;
+    private static StreamSocket socket;
     private final String id;
 
     public FileServerReplica(String serverAddress) throws Exception {
-        this.socket = new Socket(serverAddress, PORT);
-        input = new BufferedReader(new InputStreamReader(
-                socket.getInputStream()));
-        output = new PrintWriter(socket.getOutputStream(), true);
-        this.id = input.readLine();
+        socket = new StreamSocket(
+                InetAddress.getByName(serverAddress), PORT);
+        this.id = socket.receiveMessage();
         System.out.println("Nueva replica: " + this.id);
     }
 
@@ -37,10 +29,10 @@ public class FileServerReplica {
                 String response;
                 try {
                     while (true) {
-                        output.println("la la la");
+                        socket.sendMessage("la la la");
                         Thread.sleep(5000);
                     }
-                } catch (InterruptedException ex) {
+                } catch (InterruptedException | IOException ex) {
                     Logger.getLogger(FileServerReplica.class.getName()).log(Level.SEVERE, null, ex);
                 } finally {
                     try {

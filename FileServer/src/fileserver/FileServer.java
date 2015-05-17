@@ -1,9 +1,6 @@
 package fileserver;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashSet;
@@ -86,14 +83,14 @@ class Master {
 
     }
 
-    public void addReplica(Socket socket) {
+    public void addReplica(Socket socket) throws IOException {
         Replica new_replica = new Replica(socket, cntReplica + 100);
         new_replica.start();
         replicas.add(new_replica);
         cntReplica++;
     }
 
-    public void addClient(Socket socket) {
+    public void addClient(Socket socket) throws IOException {
         Client new_client = new Client(socket, cntReplica + 100);
         new_client.start();
         clients.add(new_client);
@@ -103,22 +100,13 @@ class Master {
     class Replica extends Thread {
 
         public String id;
-        Socket socket;
-        public BufferedReader input;
-        public PrintWriter output;
+        public StreamSocket socket;
 
-        public Replica(Socket socket, int id) {
-            this.socket = socket;
-            try {
-                this.input = new BufferedReader(
-                        new InputStreamReader(socket.getInputStream()));
-                this.output = new PrintWriter(socket.getOutputStream(), true);
-                this.id = Integer.toString(id);
-                this.output.println(this.id);
-            } catch (IOException e) {
-                System.out.println("Replica died: " + e);
-            }
-            System.out.println("New Replica: " + id);
+        public Replica(Socket socket, int id) throws IOException {
+            this.socket = new StreamSocket(socket);
+            this.id = Integer.toString(id);
+            this.socket.sendMessage(Integer.toString(id));
+            System.out.println("New client: " + id);
         }
 
         /**
@@ -129,7 +117,7 @@ class Master {
             String response;
             try {
                 while (true) {
-                    response = input.readLine();
+                    response = socket.receiveMessage();
                     if (response == null) {
                         return;
                     } else {
@@ -152,21 +140,12 @@ class Master {
     class Client extends Thread {
 
         public String id;
-        Socket socket;
-        public BufferedReader input;
-        public PrintWriter output;
+        public StreamSocket socket;
 
-        public Client(Socket socket, int id) {
-            this.socket = socket;
-            try {
-                this.input = new BufferedReader(
-                        new InputStreamReader(socket.getInputStream()));
-                this.output = new PrintWriter(socket.getOutputStream(), true);
-                this.id = Integer.toString(id);
-                this.output.println(this.id);
-            } catch (IOException e) {
-                System.out.println("Client died: " + e);
-            }
+        public Client(Socket socket, int id) throws IOException {
+            this.socket = new StreamSocket(socket);
+            this.id = Integer.toString(id);
+            this.socket.sendMessage(Integer.toString(id));
             System.out.println("New client: " + id);
         }
 
@@ -178,13 +157,14 @@ class Master {
             String response;
             try {
                 while (true) {
-                    response = input.readLine();
+                    response = socket.receiveMessage();
                     if (response == null) {
                         return;
                     } else if (response.startsWith("sube")) {
-                        output.println("Archivo subido");
+                        System.out.println("Nuevo archivo: " + response.substring(4));
+                        socket.sendMessage("Archivo subido");
                     } else if (response.startsWith("baja")) {
-                        output.println("Archivo descargado");
+                        socket.sendMessage("Archivo descargado");
                     }
                 }
             } catch (IOException ex) {
