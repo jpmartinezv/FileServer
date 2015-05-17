@@ -1,4 +1,9 @@
-package fileserverreplica;
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package fileserverclient;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -9,28 +14,28 @@ import java.net.Socket;
  *
  * @author jpmartinezv
  */
-public class FileServerReplica {
+public class FileServerClient {
 
-    private static final int PORT = 9090;
+    private static final int PORT = 9080;
     private final Socket socket;
     private final BufferedReader input;
     private final PrintWriter output;
     private final String id;
 
-    public FileServerReplica(String serverAddress) throws Exception {
+    public FileServerClient(String serverAddress) throws Exception {
         this.socket = new Socket(serverAddress, PORT);
         this.input = new BufferedReader(new InputStreamReader(
                 socket.getInputStream()));
         this.output = new PrintWriter(socket.getOutputStream(), true);
         this.id = input.readLine();
-        System.out.println("Nueva replica: " + this.id);
+        System.out.println("Nuevo cliente: " + this.id);
     }
 
     public void run() throws Exception {
         String response;
         try {
             while (true) {
-                output.println("la la la");
+                output.println("cli cli cli");
                 Thread.sleep(5000);
             }
         } finally {
@@ -44,7 +49,7 @@ public class FileServerReplica {
      */
     public static void main(String[] args) throws Exception {
         String serverAddress = (args.length == 0) ? "localhost" : args[1];
-        FileServerReplica replica = new FileServerReplica(serverAddress);
+        FileServerClient replica = new FileServerClient(serverAddress);
         replica.run();
     }
 }
