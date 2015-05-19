@@ -22,6 +22,10 @@ public class FileServerReplica {
         this.id = socket.receiveMessage();
         filesPath = filesPath + "replica" + this.id + "/";
         System.out.println("Nueva replica: " + this.id);
+        File file = new File(filesPath);
+        if (!file.exists()) {
+            file.mkdir();
+        }
     }
 
     public void run() throws Exception {

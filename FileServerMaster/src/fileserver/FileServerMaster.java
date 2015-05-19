@@ -5,14 +5,13 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashSet;
-import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * @author jpmartinezv
  */
-public class FileServer {
+public class FileServerMaster {
 
     /**
      * @param args the command line arguments
@@ -34,13 +33,13 @@ public class FileServer {
                         master.addReplica(listenerReplica.accept());
                     }
                 } catch (IOException ex) {
-                    Logger.getLogger(FileServer.class.getName()).
+                    Logger.getLogger(FileServerMaster.class.getName()).
                             log(Level.SEVERE, null, ex);
                 } finally {
                     try {
                         listenerReplica.close();
                     } catch (IOException ex) {
-                        Logger.getLogger(FileServer.class.getName()).
+                        Logger.getLogger(FileServerMaster.class.getName()).
                                 log(Level.SEVERE, null, ex);
                     }
 
@@ -56,13 +55,13 @@ public class FileServer {
                         master.addClient(listenerClient.accept());
                     }
                 } catch (IOException ex) {
-                    Logger.getLogger(FileServer.class.getName()).
+                    Logger.getLogger(FileServerMaster.class.getName()).
                             log(Level.SEVERE, null, ex);
                 } finally {
                     try {
                         listenerReplica.close();
                     } catch (IOException ex) {
-                        Logger.getLogger(FileServer.class.getName()).
+                        Logger.getLogger(FileServerMaster.class.getName()).
                                 log(Level.SEVERE, null, ex);
                     }
 
@@ -143,10 +142,12 @@ class Master {
 
         public String id;
         public StreamSocket socket;
+        public String username;
 
         public Client(Socket socket, int id) throws IOException {
             this.socket = new StreamSocket(socket);
             this.id = Integer.toString(id);
+            this.username = this.socket.receiveMessage();
             this.socket.sendMessage(Integer.toString(id));
             System.out.println("New client: " + id);
         }
@@ -163,24 +164,39 @@ class Master {
                     if (response == null) {
                         return;
                     } else if (response.startsWith("sube")) {
+                        if (replicas.isEmpty()) {
+                            socket.sendMessage("error");
+                            socket.sendMessage("Replicas no disponibles");
+                        }
+                        socket.sendMessage("success");
+
                         clearReplica();
                         File outFile = new File(filesPath + response.substring(5));
                         socket.receiveFile(outFile);
 
                         for (Replica replica : replicas) {
-                            replica.socket.sendMessage("sube " + response.substring(5));
+                            replica.socket.sendMessage("sube " + username + "_"
+                                    + response.substring(5));
                             replica.socket.sendFile(outFile);
                         }
 
-                        System.out.println("Nuevo archivo: " + response.substring(5));
+                        System.out.println("Nuevo archivo: " + username + "_"
+                                + response.substring(5));
                         socket.sendMessage("Archivo subido");
 
                     } else if (response.startsWith("baja")) {
                         File file = new File(filesPath + response.substring(5));
 
+                        if (replicas.isEmpty()) {
+                            socket.sendMessage("error");
+                            socket.sendMessage("Replicas no disponibles");
+                        }
+
                         Replica current = getCurrent();
+
                         System.out.println("Current: " + current.id);
-                        current.socket.sendMessage("baja " + response.substring(5));
+                        current.socket.sendMessage("baja " + username + "_"
+                                + response.substring(5));
 
                         String ans = current.socket.receiveMessage();
                         if (ans.startsWith("success")) {

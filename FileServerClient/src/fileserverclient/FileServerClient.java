@@ -6,11 +6,9 @@
 package fileserverclient;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Scanner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 
 /**
  *
@@ -24,9 +22,10 @@ public class FileServerClient {
 
     private static String filesPath = System.getProperty("user.dir") + "/files/";
 
-    public FileServerClient(String serverAddress) throws Exception {
+    public FileServerClient(String serverAddress, String username) throws Exception {
         socket = new StreamSocket(
                 InetAddress.getByName(serverAddress), PORT);
+        socket.sendMessage(username);
         this.id = socket.receiveMessage();
         System.out.println("Nuevo cliente: " + this.id);
     }
@@ -39,14 +38,16 @@ public class FileServerClient {
             if (command.startsWith("sube")) {
                 File file = new File(filesPath + command.substring(5));
                 socket.sendMessage("sube " + command.substring(5));
-                socket.sendFile(file);
+                if (socket.receiveMessage().startsWith("success")) {
+                    socket.sendFile(file);
+                }
                 System.out.println(socket.receiveMessage() + "\n");
             } else if (command.startsWith("baja")) {
                 File file = new File(filesPath + command.substring(5));
                 socket.sendMessage("baja " + command.substring(5));
                 if (socket.receiveMessage().startsWith("success")) {
                     socket.receiveFile(file);
-                } 
+                }
                 System.out.println(socket.receiveMessage() + "\n");
             } else {
                 System.out.println("Comando incorrecto\n");
@@ -60,7 +61,8 @@ public class FileServerClient {
      */
     public static void main(String[] args) throws Exception {
         String serverAddress = (args.length == 0) ? "localhost" : args[1];
-        FileServerClient client = new FileServerClient(serverAddress);
+        String username = JOptionPane.showInputDialog(null, null, "username");
+        FileServerClient client = new FileServerClient(serverAddress, username);
         client.run();
     }
 }
