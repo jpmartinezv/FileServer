@@ -49,6 +49,11 @@ public class StreamSocket {
         output.flush();
     } // end sendMessage
 
+    public void sendBit() throws IOException {
+        output.write(1);
+        output.flush();
+    } // end sendMessage
+
     public String receiveMessage() throws IOException {
         String message = input.readUTF();
         return message;

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashSet;
+import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -75,7 +76,7 @@ public class FileServer {
 class Master {
 
     private int cntReplica = 0;
-    private final HashSet<Replica> replicas = new HashSet<>();
+    private HashSet<Replica> replicas = new HashSet<>();
 
     private int cntClient = 0;
     private final HashSet<Client> clients = new HashSet<>();
@@ -94,10 +95,28 @@ class Master {
     }
 
     public void addClient(Socket socket) throws IOException {
-        Client new_client = new Client(socket, cntReplica + 100);
+        Client new_client = new Client(socket, cntClient + 100);
         new_client.start();
         clients.add(new_client);
         cntClient++;
+    }
+
+    public void clearReplica() throws IOException {
+        //System.out.println("----------> " + replicas.size());
+        HashSet<Replica> temp = new HashSet<>();
+        for (Replica replica : replicas) {
+            replica.socket.sendMessage("live" + replica.id);
+            if (replica.socket.isAlive(replica.id)) {
+                temp.add(replica);
+            }
+        }
+        replicas = temp;
+        //System.out.println("**********> " + replicas.size());
+    }
+
+    public Replica getCurrent() throws IOException {
+        clearReplica();
+        return replicas.iterator().next();
     }
 
     class Replica extends Thread {
@@ -109,7 +128,7 @@ class Master {
             this.socket = new StreamSocket(socket);
             this.id = Integer.toString(id);
             this.socket.sendMessage(Integer.toString(id));
-            System.out.println("New client: " + id);
+            System.out.println("New Replica: " + id);
         }
 
         /**
@@ -117,26 +136,6 @@ class Master {
          */
         @Override
         public void run() {
-            String response;
-            try {
-                while (true) {
-                    response = socket.receiveMessage();
-                    if (response == null) {
-                        return;
-                    } else {
-                        System.out.println(
-                                "Replica " + this.id + ": " + response
-                        );
-                    }
-                }
-            } catch (IOException ex) {
-                System.out.println(ex);
-            } finally {
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                }
-            }
         }
     }
 
@@ -164,15 +163,29 @@ class Master {
                     if (response == null) {
                         return;
                     } else if (response.startsWith("sube")) {
-                        System.out.println("Nuevo archivo: " + response.substring(5));
-
+                        clearReplica();
                         File outFile = new File(filesPath + response.substring(5));
-
                         socket.receiveFile(outFile);
+
+                        for (Replica replica : replicas) {
+                            replica.socket.sendMessage("sube " + response.substring(5));
+                            replica.socket.sendFile(outFile);
+                        }
+
+                        System.out.println("Nuevo archivo: " + response.substring(5));
                         socket.sendMessage("Archivo subido");
+
                     } else if (response.startsWith("baja")) {
                         File file = new File(filesPath + response.substring(5));
-                        if (file.exists() && !file.isDirectory()) {
+
+                        Replica current = getCurrent();
+                        System.out.println("Current: " + current.id);
+                        current.socket.sendMessage("baja " + response.substring(5));
+
+                        String ans = current.socket.receiveMessage();
+                        if (ans.startsWith("success")) {
+                            current.socket.receiveFile(file);
+
                             socket.sendMessage("success");
                             socket.sendFile(file);
                             socket.sendMessage("Archivo descargado");
@@ -180,11 +193,10 @@ class Master {
                             socket.sendMessage("error");
                             socket.sendMessage("Archivo no encontrado");
                         }
-
                     }
                 }
             } catch (IOException ex) {
-                System.out.println(ex);
+
             } finally {
                 try {
                     socket.close();

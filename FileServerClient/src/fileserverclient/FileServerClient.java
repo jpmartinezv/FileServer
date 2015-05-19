@@ -40,16 +40,16 @@ public class FileServerClient {
                 File file = new File(filesPath + command.substring(5));
                 socket.sendMessage("sube " + command.substring(5));
                 socket.sendFile(file);
-                System.out.println(socket.receiveMessage());
+                System.out.println(socket.receiveMessage() + "\n");
             } else if (command.startsWith("baja")) {
-                socket.sendMessage("baja " + command.substring(5));
                 File file = new File(filesPath + command.substring(5));
-                if (socket.receiveMessage().equals("success")) {
+                socket.sendMessage("baja " + command.substring(5));
+                if (socket.receiveMessage().startsWith("success")) {
                     socket.receiveFile(file);
-                }
-                System.out.println(socket.receiveMessage());
+                } 
+                System.out.println(socket.receiveMessage() + "\n");
             } else {
-                System.out.println("Comando incorrecto");
+                System.out.println("Comando incorrecto\n");
             }
         }
     }

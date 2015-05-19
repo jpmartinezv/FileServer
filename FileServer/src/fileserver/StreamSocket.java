@@ -15,7 +15,6 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 
-
 public class StreamSocket {
 
     private Socket socket;
@@ -51,6 +50,11 @@ public class StreamSocket {
         return message;
     } // end receiveMessage
 
+    public boolean isAlive(String id) throws IOException {
+        int message = input.read();
+        return message != -1;
+    } // end receiveMessage
+
     public void close() throws IOException {
         socket.close();
     }
@@ -76,6 +80,10 @@ public class StreamSocket {
                 fileOut.write(buf, 0, bytesSent);
             }
         }
+    }
+
+    public boolean isDown() throws IOException {
+        return socket.getInputStream().read() == -1;
     }
 } // end class
 
